@@ -1,0 +1,153 @@
+
+
+import React, { useMemo } from 'react';
+import type { Contract } from '../types';
+import { ContractType } from '../types';
+import { LightningBoltIcon, FireIcon } from './Icons';
+
+interface ProviderPieChartProps {
+  contracts: Contract[];
+}
+
+// Helper to calculate SVG path for a pie slice
+const getArcPath = (
+  x: number,
+  y: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number
+): string => {
+  const start = {
+    x: x + radius * Math.cos(startAngle),
+    y: y + radius * Math.sin(startAngle),
+  };
+  const end = {
+    x: x + radius * Math.cos(endAngle),
+    y: y + radius * Math.sin(endAngle),
+  };
+
+  // if the slice is a full circle, we need to handle it specially
+  if (endAngle - startAngle >= 2 * Math.PI - 0.001) {
+    // Two half circles
+    const midPoint = {
+        x: x + radius * Math.cos(startAngle + Math.PI),
+        y: y + radius * Math.sin(startAngle + Math.PI)
+    }
+    return [
+        'M', start.x, start.y,
+        'A', radius, radius, 0, 1, 1, midPoint.x, midPoint.y,
+        'A', radius, radius, 0, 1, 1, start.x, start.y
+    ].join(' ');
+  }
+
+  const largeArcFlag = endAngle - startAngle <= Math.PI ? '0' : '1';
+
+  // Path from center to start of arc, then the arc, then back to center
+  const d = [
+    'M', x, y,
+    'L', start.x, start.y,
+    'A', radius, radius, 0, largeArcFlag, 1, end.x, end.y,
+    'Z',
+  ].join(' ');
+
+  return d;
+};
+
+
+const ProviderPieChart: React.FC<ProviderPieChartProps> = ({ contracts }) => {
+  
+  const chartData = useMemo(() => {
+    if (contracts.length === 0) return null;
+
+    // FIX: Explicitly cast the initial value of reduce to Record<string, number>
+    // to ensure TypeScript correctly infers the type of providerCounts and its values.
+    const providerCounts = contracts.reduce((acc, contract) => {
+      acc[contract.provider] = (acc[contract.provider] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const sortedProviders = Object.entries(providerCounts).sort(([, countA], [, countB]) => countB - countA);
+    
+    const total = contracts.length;
+    
+    const colors = [
+      '#38bdf8', '#fbbf24', '#4ade80', '#f87171', '#a78bfa',
+      '#2dd4bf', '#f472b6', '#a3e635', '#60a5fa', '#fb923c'
+    ];
+    
+    let cumulativeAngle: number = 0;
+
+    return {
+      total,
+      providers: sortedProviders.map(([name, count], index) => {
+        const percentage = (count / total) * 100;
+        const angle = (percentage / 100) * (2 * Math.PI);
+        
+        const path = getArcPath(50, 50, 50, cumulativeAngle, cumulativeAngle + angle);
+        cumulativeAngle += angle;
+
+        return {
+          name,
+          count,
+          percentage: percentage.toFixed(1),
+          color: colors[index % colors.length],
+          path,
+        };
+      }),
+    };
+  }, [contracts]);
+
+  if (!chartData) {
+    return null; // Don't render anything if there are no electricity contracts
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="flex items-center mb-4">
+        <LightningBoltIcon className="h-6 w-6 text-yellow-500 mr-1" />
+        <FireIcon className="h-6 w-6 text-orange-500 mr-3" />
+        <h2 className="text-xl font-bold text-slate-800">Ripartizione Contratti Energia e Gas</h2>
+      </div>
+      {chartData.providers.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+            <div className="relative w-full aspect-square max-w-[200px] mx-auto">
+                 <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                    {chartData.providers.map((provider) => (
+                        <path
+                            key={provider.name}
+                            d={provider.path}
+                            fill={provider.color}
+                        >
+                           <title>{`${provider.name}: ${provider.count} (${provider.percentage}%)`}</title>
+                        </path>
+                    ))}
+                </svg>
+            </div>
+          
+            <div className="text-sm">
+                <ul className="space-y-2">
+                    {chartData.providers.map(provider => (
+                        <li key={provider.name} className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <span className="h-3 w-3 rounded-full mr-3" style={{ backgroundColor: provider.color }} aria-hidden="true"></span>
+                                <span className="font-medium text-slate-700">{provider.name}</span>
+                            </div>
+                            <div className="text-slate-500">
+                                <span className="font-semibold text-slate-800">{provider.count}</span>
+                                <span className="ml-2 text-xs">({provider.percentage}%)</span>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </div>
+      ) : (
+        <div className="text-center py-10">
+          <p className="text-slate-500">Nessun contratto di energia o gas da visualizzare.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ProviderPieChart;
