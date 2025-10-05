@@ -55,6 +55,31 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
+  // State for dark mode
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        return 'dark';
+      }
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [theme]);
+
+  const handleThemeSwitch = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -102,7 +127,6 @@ const App: React.FC = () => {
         years.add(i);
     }
 
-    // FIX: Explicitly cast values to Number to prevent type errors during subtraction.
     return Array.from(years).sort((a, b) => Number(a) - Number(b));
   }, [contracts]);
 
@@ -333,7 +357,7 @@ const App: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
+      <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-900">
         <Spinner size="lg" />
       </div>
     );
@@ -358,19 +382,19 @@ const App: React.FC = () => {
                         selectedYear={selectedCommissionYear}
                         selectedMonth={selectedCommissionMonth}
                     />
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <h3 className="text-lg font-bold text-slate-800 mb-4">Filtri Dashboard</h3>
+                    <div className="bg-white rounded-xl shadow-lg p-6 dark:bg-slate-800">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">Filtri Dashboard</h3>
                         <div className="space-y-4">
                             <div>
-                                <label htmlFor="year-filter" className="block text-sm font-medium text-slate-600 mb-1">Anno</label>
-                                <select id="year-filter" value={selectedCommissionYear} onChange={e => setSelectedCommissionYear(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md">
+                                <label htmlFor="year-filter" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Anno</label>
+                                <select id="year-filter" value={selectedCommissionYear} onChange={e => setSelectedCommissionYear(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white">
                                     <option value="all">Tutti</option>
                                     {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor="month-filter" className="block text-sm font-medium text-slate-600 mb-1">Mese</label>
-                                <select id="month-filter" value={selectedCommissionMonth} onChange={e => setSelectedCommissionMonth(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md">
+                                <label htmlFor="month-filter" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Mese</label>
+                                <select id="month-filter" value={selectedCommissionMonth} onChange={e => setSelectedCommissionMonth(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white">
                                     <option value="all">Tutti</option>
                                     {months.map(month => <option key={month.value} value={month.value}>{month.name}</option>)}
                                 </select>
@@ -389,7 +413,7 @@ const App: React.FC = () => {
           </div>
         );
       case 'clients':
-        return <ClientListView clients={clients} onAdd={handleOpenClientModal} onEdit={handleEditClient} onDelete={(clientId) => handleDeleteClient(clientId)} />;
+        return <ClientListView clients={clients} contracts={contracts} onAdd={handleOpenClientModal} onEdit={handleEditClient} onDelete={(clientId) => handleDeleteClient(clientId)} />;
       case 'contracts':
         return <ContractListView
           contracts={filteredContracts}
@@ -407,22 +431,24 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-50 text-slate-800 min-h-screen">
+    <div className="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 min-h-screen">
       <Sidebar
         currentView={view}
         onNavigate={handleNavigation}
         expiringContractsCount={expiringContracts.length}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        theme={theme}
+        onThemeSwitch={handleThemeSwitch}
       />
       
       <div className="lg:pl-64">
         <div className="flex flex-col h-screen">
-            <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 px-4 sm:px-6 py-3 sticky top-0 z-20">
+            <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 px-4 sm:px-6 py-3 sticky top-0 z-20 dark:bg-slate-900/80 dark:border-slate-700">
                 <div className="flex items-center">
                     <button
                         onClick={() => setIsSidebarOpen(true)}
-                        className="lg:hidden p-2 -ml-2 mr-2 text-slate-600 hover:bg-slate-100 rounded-md"
+                        className="lg:hidden p-2 -ml-2 mr-2 text-slate-600 hover:bg-slate-100 rounded-md dark:text-slate-300 dark:hover:bg-slate-800"
                         aria-label="Apri menu"
                     >
                         <MenuIcon className="h-6 w-6" />
@@ -430,7 +456,7 @@ const App: React.FC = () => {
                     <div className="relative w-full max-w-lg lg:mx-auto">
                         <button
                             onClick={handleOpenSearchModal}
-                            className="w-full flex items-center text-left bg-slate-100 border border-transparent rounded-md py-2.5 pl-10 pr-4 text-sm text-slate-500 hover:bg-slate-200 transition-colors"
+                            className="w-full flex items-center text-left bg-slate-100 border border-transparent rounded-md py-2.5 pl-10 pr-4 text-sm text-slate-500 hover:bg-slate-200 transition-colors dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
                         >
                             Cerca clienti, contratti...
                         </button>

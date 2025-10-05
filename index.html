@@ -6,7 +6,15 @@
     <title>CRM Clienti</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+    // Script per la gestione della Dark Mode per evitare FOUC (Flash of Unstyled Content)
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+
     tailwind.config = {
+      darkMode: 'class', // Abilita la dark mode basata su una classe
       theme: {
         extend: {
           keyframes: {
@@ -46,7 +54,7 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-slate-50 text-slate-800">
+  <body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-200 transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
