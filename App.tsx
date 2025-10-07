@@ -47,6 +47,7 @@ const App: React.FC = () => {
   // State for commission filters
   const [selectedCommissionYear, setSelectedCommissionYear] = useState<string>('all');
   const [selectedCommissionMonth, setSelectedCommissionMonth] = useState<string>('all');
+  const [selectedDashboardProvider, setSelectedDashboardProvider] = useState<string>('all');
 
   // State for contract provider filter
   const [selectedProviderFilter, setSelectedProviderFilter] = useState<string>('all');
@@ -142,10 +143,11 @@ const App: React.FC = () => {
 
         const yearMatch = (selectedCommissionYear === 'all') || (contractYear === yearAsNum);
         const monthMatch = (selectedCommissionMonth === 'all') || (contractMonth === monthAsNum);
-        
-        return yearMatch && monthMatch;
+        const providerMatch = (selectedDashboardProvider === 'all') || (contract.provider === selectedDashboardProvider);
+
+        return yearMatch && monthMatch && providerMatch;
     });
-  }, [contracts, selectedCommissionYear, selectedCommissionMonth]);
+  }, [contracts, selectedCommissionYear, selectedCommissionMonth, selectedDashboardProvider]);
 
   const totalCommission = useMemo(() => {
     return filteredContractsByDate
@@ -194,12 +196,17 @@ const App: React.FC = () => {
     const lowerCaseQuery = searchQuery.toLowerCase();
     
     const foundClients = clients.filter(client => {
+      const clientIbans = client.ibans ? client.ibans.map(iban => iban.value).join(' ') : '';
+      const oldIban = (client as any).iban || ''; // For backward compatibility with data not yet migrated
+
       const clientSearchableString = [
         client.firstName,
         client.lastName,
         client.email,
         client.codiceFiscale,
         client.mobilePhone,
+        clientIbans,
+        oldIban,
         formatAddressForSearch(client.legalAddress),
         formatAddressForSearch(client.residentialAddress)
       ].filter(Boolean).join(' ').toLowerCase();
@@ -376,11 +383,13 @@ const App: React.FC = () => {
                         totalCommission={totalCommission}
                         selectedYear={selectedCommissionYear}
                         selectedMonth={selectedCommissionMonth}
+                        selectedProvider={selectedDashboardProvider}
                     />
                     <TotalContractsWidget
                         totalContracts={totalFilteredContracts}
                         selectedYear={selectedCommissionYear}
                         selectedMonth={selectedCommissionMonth}
+                        selectedProvider={selectedDashboardProvider}
                     />
                     <div className="bg-white rounded-xl shadow-lg p-6 dark:bg-slate-800">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">Filtri Dashboard</h3>
@@ -397,6 +406,18 @@ const App: React.FC = () => {
                                 <select id="month-filter" value={selectedCommissionMonth} onChange={e => setSelectedCommissionMonth(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white">
                                     <option value="all">Tutti</option>
                                     {months.map(month => <option key={month.value} value={month.value}>{month.name}</option>)}
+                                </select>
+                            </div>
+                             <div>
+                                <label htmlFor="provider-dashboard-filter" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Fornitore</label>
+                                <select 
+                                    id="provider-dashboard-filter" 
+                                    value={selectedDashboardProvider} 
+                                    onChange={e => setSelectedDashboardProvider(e.target.value)} 
+                                    className="w-full p-2 border border-slate-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                                >
+                                    <option value="all">Tutti</option>
+                                    {providers.sort().map(provider => <option key={provider} value={provider}>{provider}</option>)}
                                 </select>
                             </div>
                         </div>

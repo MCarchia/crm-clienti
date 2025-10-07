@@ -5,6 +5,7 @@ interface TotalContractsWidgetProps {
   totalContracts: number;
   selectedYear: string;
   selectedMonth: string;
+  selectedProvider: string;
 }
 
 const months = [
@@ -20,18 +21,28 @@ const TotalContractsWidget: React.FC<TotalContractsWidgetProps> = ({
   totalContracts,
   selectedYear,
   selectedMonth,
+  selectedProvider,
 }) => {
   const monthName = selectedMonth === 'all' ? undefined : months.find(m => m.value === parseInt(selectedMonth, 10))?.name;
-
+  
   let title = "Contratti Totali";
-  let subtitle = "(Complessivo)";
+  const subtitleParts: string[] = [];
 
-  if (selectedYear !== 'all' && selectedMonth !== 'all' && monthName) {
-    subtitle = `(${monthName} ${selectedYear})`;
-  } else if (selectedYear !== 'all') {
-    subtitle = `(${selectedYear})`;
-  } else if (selectedMonth !== 'all' && monthName) {
-    subtitle = `(Tutti i ${monthName})`;
+  if (selectedProvider !== 'all') {
+      subtitleParts.push(selectedProvider);
+  }
+  if (selectedMonth !== 'all' && monthName) {
+      subtitleParts.push(monthName);
+  }
+  if (selectedYear !== 'all') {
+      subtitleParts.push(selectedYear);
+  }
+
+  let subtitle = "";
+  if (subtitleParts.length > 0) {
+      subtitle = `(${subtitleParts.join(', ')})`;
+  } else {
+      subtitle = "(Complessivo)";
   }
 
   return (

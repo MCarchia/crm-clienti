@@ -30,6 +30,11 @@ export interface Address {
   country?: string; // Nazione
 }
 
+export interface Iban {
+  value: string;
+  type: 'personal' | 'business';
+}
+
 export interface Client {
   id: string;
   firstName: string;
@@ -37,7 +42,7 @@ export interface Client {
   email: string;
   codiceFiscale?: string;
   mobilePhone?: string;
-  iban?: string;
+  ibans?: Iban[];
   legalAddress?: Address;
   residentialAddress?: Address;
   notes?: string;

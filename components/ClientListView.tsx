@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import type { Client, Contract, Address } from '../types';
 import { ContractType } from '../types';
-import { PencilIcon, TrashIcon, PlusIcon, LightningBoltIcon, DeviceMobileIcon, UserGroupIcon, ChevronUpIcon, ChevronDownIcon, FireIcon } from './Icons';
+import { PencilIcon, TrashIcon, PlusIcon, LightningBoltIcon, DeviceMobileIcon, UserGroupIcon, ChevronUpIcon, ChevronDownIcon, FireIcon, CalendarIcon, DocumentDuplicateIcon } from './Icons';
 
 // --- VISTA GESTIONE CLIENTI ---
 interface ClientListViewProps {
   clients: Client[];
+  contracts: Contract[];
   onAdd: () => void;
   onEdit: (client: Client) => void;
   onDelete: (clientId: string) => void;
@@ -25,7 +26,7 @@ const formatAddress = (address?: Address) => {
   return parts.filter(Boolean).join(', ');
 };
 
-export const ClientListView: React.FC<ClientListViewProps> = ({ clients, onAdd, onEdit, onDelete }) => {
+export const ClientListView: React.FC<ClientListViewProps> = ({ clients, contracts, onAdd, onEdit, onDelete }) => {
   const sortedClients = useMemo(() => {
     return [...clients].sort((a, b) => (a.lastName || '').localeCompare(b.lastName || ''));
   }, [clients]);
@@ -51,37 +52,50 @@ export const ClientListView: React.FC<ClientListViewProps> = ({ clients, onAdd, 
                     <th scope="col" className="px-6 py-3">Cliente</th>
                     <th scope="col" className="px-6 py-3">Contatti</th>
                     <th scope="col" className="px-6 py-3">Indirizzi</th>
+                    <th scope="col" className="px-6 py-3 text-center">Contratti</th>
                     <th scope="col" className="px-6 py-3 text-right">Azioni</th>
                 </tr>
                 </thead>
                 <tbody>
-                {sortedClients.map(client => (
-                    <tr key={client.id} className="bg-white border-b hover:bg-slate-50">
-                        <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap align-top">
-                           {`${client.firstName} ${client.lastName}`}
-                           {client.codiceFiscale && <div className="text-xs text-slate-500 font-mono mt-1">{client.codiceFiscale}</div>}
-                           {client.iban && <div className="text-xs text-slate-400 font-normal mt-1">{client.iban}</div>}
-                        </td>
-                        <td className="px-6 py-4 align-top">
-                            <div>{client.email}</div>
-                            <div className="text-xs text-slate-400">{client.mobilePhone}</div>
-                        </td>
-                         <td className="px-6 py-4 align-top text-xs">
-                            <div className="text-slate-600"><span className="font-semibold">Sede Legale:</span> {formatAddress(client.legalAddress)}</div>
-                            <div className="text-slate-600 mt-1"><span className="font-semibold">Residenza:</span> {formatAddress(client.residentialAddress)}</div>
-                        </td>
-                        <td className="px-6 py-4 text-right align-top">
-                            <div className="flex items-center justify-end space-x-2">
-                                <button onClick={() => onEdit(client)} className="p-2 text-sky-600 rounded-full hover:bg-sky-100 transition-colors" title="Modifica cliente" aria-label={`Modifica cliente ${client.firstName} ${client.lastName}`}>
-                                    <PencilIcon className="h-5 w-5" />
-                                </button>
-                                <button onClick={() => onDelete(client.id)} className="p-2 text-red-600 rounded-full hover:bg-red-100 transition-colors" title="Elimina cliente" aria-label={`Elimina cliente ${client.firstName} ${client.lastName}`}>
-                                    <TrashIcon className="h-5 w-5" />
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                ))}
+                {sortedClients.map(client => {
+                    const contractCount = contracts.filter(c => c.clientId === client.id).length;
+                    return (
+                        <tr key={client.id} className="bg-white border-b hover:bg-slate-50">
+                            <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap align-top">
+                               <div className="font-semibold">{`${client.firstName} ${client.lastName}`}</div>
+                               {client.codiceFiscale && <div className="text-xs text-slate-500 font-mono mt-1">{client.codiceFiscale}</div>}
+                               <div className="flex items-center text-xs text-slate-400 mt-2">
+                                 <CalendarIcon className="h-4 w-4 mr-1.5" />
+                                 <span>Cliente dal: {new Date(client.createdAt).toLocaleDateString('it-IT')}</span>
+                               </div>
+                            </td>
+                            <td className="px-6 py-4 align-top">
+                                <div>{client.email}</div>
+                                <div className="text-xs text-slate-400">{client.mobilePhone}</div>
+                            </td>
+                             <td className="px-6 py-4 align-top text-xs">
+                                <div className="text-slate-600"><span className="font-semibold">Sede Legale:</span> {formatAddress(client.legalAddress)}</div>
+                                <div className="text-slate-600 mt-1"><span className="font-semibold">Residenza:</span> {formatAddress(client.residentialAddress)}</div>
+                            </td>
+                            <td className="px-6 py-4 align-top text-center">
+                                <div className="flex items-center justify-center space-x-2">
+                                    <DocumentDuplicateIcon className="h-4 w-4 text-slate-400" />
+                                    <span className="font-medium text-slate-700">{contractCount}</span>
+                                </div>
+                            </td>
+                            <td className="px-6 py-4 text-right align-top">
+                                <div className="flex items-center justify-end space-x-2">
+                                    <button onClick={() => onEdit(client)} className="p-2 text-sky-600 rounded-full hover:bg-sky-100 transition-colors" title="Modifica cliente" aria-label={`Modifica cliente ${client.firstName} ${client.lastName}`}>
+                                        <PencilIcon className="h-5 w-5" />
+                                    </button>
+                                    <button onClick={() => onDelete(client.id)} className="p-2 text-red-600 rounded-full hover:bg-red-100 transition-colors" title="Elimina cliente" aria-label={`Elimina cliente ${client.firstName} ${client.lastName}`}>
+                                        <TrashIcon className="h-5 w-5" />
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    );
+                })}
                 </tbody>
             </table>
             ) : (

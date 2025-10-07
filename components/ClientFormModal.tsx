@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import type { Client, Contract } from '../types';
+import type { Client, Contract, Iban } from '../types';
 import { ContractType } from '../types';
-import { XIcon } from './Icons';
+import { XIcon, PlusIcon, TrashIcon } from './Icons';
 import { Spinner } from './Spinner';
 
 // --- MODAL PER CLIENTI ---
@@ -20,25 +20,33 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClos
     email: '',
     mobilePhone: '',
     codiceFiscale: '',
-    iban: '',
+    ibans: [] as Iban[],
     legalAddress: { street: '', zipCode: '', city: '', state: '', country: 'Italia' },
     residentialAddress: { street: '', zipCode: '', city: '', state: '', country: 'Italia' },
     notes: '',
   });
 
   const [formData, setFormData] = useState(getInitialFormData());
-  const [errors, setErrors] = useState<{ codiceFiscale?: string; iban?: string }>({});
+  const [errors, setErrors] = useState<{ codiceFiscale?: string; ibans?: (string | undefined)[] }>({});
 
   useEffect(() => {
     if (isOpen) {
       if (client) {
+        // Data migration for old iban field
+        let initialIbans: Iban[] = [];
+        if (client.ibans && Array.isArray(client.ibans)) {
+          initialIbans = client.ibans;
+        } else if ((client as any).iban && typeof (client as any).iban === 'string') {
+          initialIbans = [{ value: (client as any).iban, type: 'personal' }];
+        }
+
         setFormData({
           firstName: client.firstName || '',
           lastName: client.lastName || '',
           email: client.email || '',
           mobilePhone: client.mobilePhone || '',
           codiceFiscale: client.codiceFiscale || '',
-          iban: client.iban || '',
+          ibans: initialIbans,
           legalAddress: { ...getInitialFormData().legalAddress, ...(client.legalAddress || {}) },
           residentialAddress: { ...getInitialFormData().residentialAddress, ...(client.residentialAddress || {}) },
           notes: client.notes || '',
@@ -66,11 +74,35 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClos
     }
   };
 
+  const handleIbanChange = (index: number, field: keyof Iban, value: string) => {
+    const newIbans = [...formData.ibans];
+    newIbans[index] = { ...newIbans[index], [field]: value as any };
+    setFormData(prev => ({ ...prev, ibans: newIbans }));
+  };
+
+  const addIban = () => {
+    setFormData(prev => ({
+      ...prev,
+      ibans: [...prev.ibans, { value: '', type: 'personal' }]
+    }));
+  };
+
+  const removeIban = (index: number) => {
+    const newIbans = formData.ibans.filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, ibans: newIbans }));
+    
+    if (errors.ibans) {
+      const newIbanErrors = errors.ibans.filter((_, i) => i !== index);
+      setErrors(prev => ({...prev, ibans: newIbanErrors}));
+    }
+  };
+
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
     
-    const validationErrors: { codiceFiscale?: string; iban?: string } = {};
+    const validationErrors: { codiceFiscale?: string; ibans?: (string | undefined)[] } = {};
 
     // Validazione Codice Fiscale
     const cfRegex = /^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$/i;
@@ -80,8 +112,19 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClos
     
     // Validazione IBAN
     const ibanRegex = /^IT\d{2}[A-Z]\d{10}[a-zA-Z0-9]{12}$/i;
-    if (formData.iban && !ibanRegex.test(formData.iban.replace(/\s/g, ''))) {
-      validationErrors.iban = "Il formato dell'IBAN non è valido. Deve iniziare con IT e avere 27 caratteri.";
+    const ibanErrors: (string | undefined)[] = [];
+    let hasIbanError = false;
+    formData.ibans.forEach((iban, index) => {
+        if (iban.value && !ibanRegex.test(iban.value.replace(/\s/g, ''))) {
+            ibanErrors[index] = "Il formato dell'IBAN non è valido. Deve iniziare con IT e avere 27 caratteri.";
+            hasIbanError = true;
+        } else {
+            ibanErrors[index] = undefined;
+        }
+    });
+
+    if (hasIbanError) {
+        validationErrors.ibans = ibanErrors;
     }
 
     if (Object.keys(validationErrors).length > 0) {
@@ -92,7 +135,11 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClos
     setErrors({});
 
     if (formData.firstName && formData.lastName && formData.email) {
-      onSave(formData);
+      const finalClientData = {
+          ...formData,
+          ibans: formData.ibans.filter(iban => iban.value.trim() !== '')
+      };
+      onSave(finalClientData);
     } else {
       alert("Nome, Cognome e Email sono campi obbligatori.");
     }
@@ -150,22 +197,69 @@ export const ClientFormModal: React.FC<ClientFormModalProps> = ({ isOpen, onClos
                    />
                    {errors.codiceFiscale && <p id="codice-fiscale-error" className="mt-1 text-sm text-red-600">{errors.codiceFiscale}</p>}
                 </div>
-                 <div>
-                  <label htmlFor="iban" className="block text-sm font-medium text-slate-700">IBAN</label>
-                   <input
-                    type="text"
-                    id="iban"
-                    name="iban"
-                    value={formData.iban}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 sm:text-sm ${errors.iban ? 'border-red-500 text-red-900 focus:border-red-500 focus:ring-red-500' : 'border-slate-300'}`}
-                    aria-invalid={!!errors.iban}
-                    aria-describedby={errors.iban ? "iban-error" : undefined}
-                    placeholder="IT60X0542811101000000123456"
-                  />
-                  {errors.iban && <p id="iban-error" className="mt-1 text-sm text-red-600">{errors.iban}</p>}
-                </div>
               </div>
+            </fieldset>
+
+            {/* IBANs */}
+            <fieldset>
+                <legend className="text-lg font-semibold text-slate-800 mb-3 border-b pb-2">IBAN</legend>
+                <div className="space-y-4">
+                {formData.ibans.map((iban, index) => (
+                    <div key={index} className="p-3 bg-slate-50 rounded-md border border-slate-200 animate-fade-in-down dark:bg-slate-800/50 dark:border-slate-700">
+                    <div className="flex items-start space-x-4">
+                        <div className="flex-grow">
+                        <label htmlFor={`iban-${index}`} className="block text-sm font-medium text-slate-700 dark:text-slate-300">IBAN</label>
+                        <input
+                            type="text"
+                            id={`iban-${index}`}
+                            name={`iban-${index}`}
+                            value={iban.value}
+                            onChange={(e) => handleIbanChange(index, 'value', e.target.value)}
+                            className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-sky-500 sm:text-sm dark:bg-slate-700 dark:border-slate-600 dark:text-white ${errors.ibans?.[index] ? 'border-red-500 text-red-900 focus:border-red-500 focus:ring-red-500' : 'border-slate-300'}`}
+                            placeholder="IT60X0542811101000000123456"
+                            aria-invalid={!!errors.ibans?.[index]}
+                            aria-describedby={errors.ibans?.[index] ? `iban-error-${index}` : undefined}
+                        />
+                        {errors.ibans?.[index] && <p id={`iban-error-${index}`} className="mt-1 text-sm text-red-600">{errors.ibans[index]}</p>}
+                        </div>
+                        <button type="button" onClick={() => removeIban(index)} className="mt-7 p-2 text-red-500 hover:bg-red-100 rounded-full transition-colors dark:hover:bg-red-900/50" aria-label={`Rimuovi IBAN ${index + 1}`}>
+                            <TrashIcon className="h-5 w-5" />
+                        </button>
+                    </div>
+                    <div className="mt-3">
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Tipo</span>
+                        <div className="flex items-center space-x-4 mt-1">
+                        <label className="flex items-center">
+                            <input
+                            type="radio"
+                            name={`iban-type-${index}`}
+                            value="personal"
+                            checked={iban.type === 'personal'}
+                            onChange={(e) => handleIbanChange(index, 'type', e.target.value)}
+                            className="focus:ring-sky-500 h-4 w-4 text-sky-600 border-slate-300 dark:bg-slate-600 dark:border-slate-500"
+                            />
+                            <span className="ml-2 text-sm text-slate-600 dark:text-slate-300">Personale</span>
+                        </label>
+                        <label className="flex items-center">
+                            <input
+                            type="radio"
+                            name={`iban-type-${index}`}
+                            value="business"
+                            checked={iban.type === 'business'}
+                            onChange={(e) => handleIbanChange(index, 'type', e.target.value)}
+                            className="focus:ring-sky-500 h-4 w-4 text-sky-600 border-slate-300 dark:bg-slate-600 dark:border-slate-500"
+                            />
+                            <span className="ml-2 text-sm text-slate-600 dark:text-slate-300">Business</span>
+                        </label>
+                        </div>
+                    </div>
+                    </div>
+                ))}
+                <button type="button" onClick={addIban} className="mt-2 flex items-center text-sm font-semibold text-sky-600 hover:text-sky-700 transition dark:text-sky-400 dark:hover:text-sky-300">
+                    <PlusIcon className="h-5 w-5 mr-1" />
+                    Aggiungi IBAN
+                </button>
+                </div>
             </fieldset>
 
             {/* Sede Legale */}

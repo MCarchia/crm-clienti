@@ -1,8 +1,5 @@
-
-
-
 import React from 'react';
-import { ChartBarIcon, UserGroupIcon, DocumentDuplicateIcon, XIcon } from './Icons';
+import { ChartBarIcon, UserGroupIcon, DocumentDuplicateIcon, XIcon, SunIcon, MoonIcon } from './Icons';
 
 type View = 'dashboard' | 'contracts' | 'clients';
 
@@ -12,6 +9,8 @@ interface SidebarProps {
   expiringContractsCount: number;
   isOpen: boolean;
   onClose: () => void;
+  theme: 'light' | 'dark';
+  onThemeSwitch: () => void;
 }
 
 const NavButton: React.FC<{
@@ -29,7 +28,7 @@ const NavButton: React.FC<{
       className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg font-semibold text-left transition-colors ${
         isActive
           ? 'bg-sky-500 text-white shadow'
-          : 'text-slate-600 hover:bg-slate-100'
+          : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
       }`}
     >
       <div className="flex items-center space-x-3">
@@ -47,7 +46,7 @@ const NavButton: React.FC<{
   );
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, expiringContractsCount, isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, expiringContractsCount, isOpen, onClose, theme, onThemeSwitch }) => {
   return (
     <>
         {/* Overlay for mobile */}
@@ -58,15 +57,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, expiringCont
         />
 
         {/* Sidebar Panel */}
-        <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white h-screen flex flex-col shadow-lg border-r border-slate-200 flex-shrink-0 transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+        <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-800 h-screen flex flex-col shadow-lg border-r border-slate-200 dark:border-slate-700 flex-shrink-0 transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <div className="flex items-center space-x-3">
                 <div className="bg-sky-500 p-2 rounded-lg">
                     <UserGroupIcon className="h-6 w-6 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-slate-800">CRM</h1>
+                <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">CRM</h1>
             </div>
-             <button onClick={onClose} className="p-1 rounded-full text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Chiudi menu">
+             <button onClick={onClose} className="p-1 rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 lg:hidden" aria-label="Chiudi menu">
                 <XIcon className="h-6 w-6" />
             </button>
           </div>
@@ -96,6 +95,22 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, expiringCont
             />
           </nav>
           
+          <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+            <button
+                onClick={onThemeSwitch}
+                className="w-full flex items-center justify-center p-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
+                aria-label={`Passa a modalità ${theme === 'light' ? 'scura' : 'chiara'}`}
+            >
+                {theme === 'light' ? (
+                    <MoonIcon className="h-6 w-6 text-slate-500" />
+                ) : (
+                    <SunIcon className="h-6 w-6 text-amber-400" />
+                )}
+                <span className="ml-3 font-semibold text-sm">
+                   {theme === 'light' ? 'Modalità Scura' : 'Modalità Chiara'}
+                </span>
+            </button>
+          </div>
         </aside>
     </>
   );

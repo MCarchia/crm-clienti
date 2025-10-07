@@ -5,6 +5,7 @@ interface CommissionSummaryWidgetProps {
   totalCommission: number;
   selectedYear: string;
   selectedMonth: string;
+  selectedProvider: string;
 }
 
 const months = [
@@ -26,22 +27,31 @@ const CommissionSummaryWidget: React.FC<CommissionSummaryWidgetProps> = ({
   totalCommission,
   selectedYear,
   selectedMonth,
+  selectedProvider,
 }) => {
   const monthName = selectedMonth === 'all' ? undefined : months.find(m => m.value === parseInt(selectedMonth, 10))?.name;
-
-  let title = "Totale Provvigioni";
-  let subtitle = "(Complessivo)";
-
-  if (selectedYear !== 'all' && selectedMonth !== 'all' && monthName) {
-    title = `Provvigioni`;
-    subtitle = `(${monthName} ${selectedYear})`;
-  } else if (selectedYear !== 'all') {
-    title = `Provvigioni`;
-    subtitle = `(${selectedYear})`;
-  } else if (selectedMonth !== 'all' && monthName) {
-    title = `Provvigioni`;
-    subtitle = `(Tutti i ${monthName})`;
+  
+  let title = "Provvigioni";
+  const subtitleParts: string[] = [];
+  
+  if (selectedProvider !== 'all') {
+      subtitleParts.push(selectedProvider);
   }
+  if (selectedMonth !== 'all' && monthName) {
+      subtitleParts.push(monthName);
+  }
+  if (selectedYear !== 'all') {
+      subtitleParts.push(selectedYear);
+  }
+
+  let subtitle = "";
+  if (subtitleParts.length > 0) {
+      subtitle = `(${subtitleParts.join(', ')})`;
+  } else {
+      title = "Totale Provvigioni";
+      subtitle = "(Complessivo)";
+  }
+
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col justify-between">
